@@ -2,7 +2,6 @@
 
 namespace app\models;
 
-use Yii;
 use yii\web\IdentityInterface;
 
 /**
@@ -14,15 +13,11 @@ use yii\web\IdentityInterface;
  * @property string|null $token
  * @property string|null $code
  */
-class User extends \yii\db\ActiveRecord  implements IdentityInterface
+class User extends \app\resources\User implements IdentityInterface
 {
     /**
      * {@inheritdoc}
      */
-    public static function tableName()
-    {
-        return 'users';
-    }
 
 
     public static function findIdentity($id)
@@ -45,18 +40,12 @@ class User extends \yii\db\ActiveRecord  implements IdentityInterface
         return $this->id;
     }
 
+
     public function validateAuthKey($authKey)
     {
     }
     public function getAuthKey()
     {
     }
-    public static function generateCode($length = 6)
-    {
-        $result = '';
-        for ($i = 1; $i <= $length; $i++) {
-            $result .= random_int(0, 9);
-        }
-        return $result;
-    }
+
 }

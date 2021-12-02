@@ -6,7 +6,7 @@ use app\helpers\ApiController;
 use yii\filters\auth\HttpBearerAuth;
 
 /**
- * Default controller for the `api` module
+ * Default controller for the `api` module.
  */
 class DefaultController extends ApiController
 {
@@ -14,6 +14,7 @@ class DefaultController extends ApiController
     {
         return [];
     }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -23,13 +24,14 @@ class DefaultController extends ApiController
 
         return $behaviors;
     }
+
     /**
-     * Renders the index view for the module
+     * Renders the index view for the module.
+     *
      * @return string
      */
     public function actionIndex()
     {
-
-        return $this->success(true);
+        return $this->success(['login' => \Yii::$app->user->identity->login]);
     }
 }
