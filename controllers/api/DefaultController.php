@@ -2,14 +2,18 @@
 
 namespace app\controllers\api;
 
+use app\helpers\ApiController;
 use yii\filters\auth\HttpBearerAuth;
-use yii\web\Controller;
 
 /**
  * Default controller for the `api` module
  */
-class DefaultController extends Controller
+class DefaultController extends ApiController
 {
+    public function actions()
+    {
+        return [];
+    }
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -25,6 +29,7 @@ class DefaultController extends Controller
      */
     public function actionIndex()
     {
-        return true;
+
+        return $this->success(true);
     }
 }

@@ -1,10 +1,12 @@
 <?php
 
+
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
 $config = [
     'id' => 'test-task',
+    'language' => 'ru',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
     'aliases' => [
@@ -12,7 +14,20 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
     ],
     'components' => [
-        'response' => ['format' => \yii\web\Response::FORMAT_JSON],
+        'response' => [
+            // 'class' => 'app\helpers\ApiResponse',
+            'format' => \yii\web\Response::FORMAT_JSON,
+            'on beforeSend' => function ($event) {
+                $response = $event->sender;
+                if ($response->statusCode !== 200 && $response->statusCode !== 401) {
+                    $response->data = [
+                        'status' => app\helpers\ApiController::STATUS_ERROR,
+                        'message' => $response->data['message'] ?? 'Ошибка',
+                    ];
+                    $response->statusCode = 200;
+                }
+            }
+        ],
         'request' => [
             'parsers' => [
                 'application/json' => 'yii\web\JsonParser',
@@ -51,7 +66,7 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                'api/user/auth/<action>' => 'api/user/<action>',
+                'POST api/user/auth/<action>' => 'api/user/<action>',
                 'api/<action>' => 'api/default/<action>',
 
             ],

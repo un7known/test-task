@@ -24,32 +24,6 @@ class User extends \yii\db\ActiveRecord  implements IdentityInterface
         return 'users';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function rules()
-    {
-        return [
-            [['login'], 'required'],
-            [['login'], 'string', 'length' => 10],
-            [['password', 'token', 'code'], 'string', 'max' => 255],
-            [['login'], 'unique'],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
-    {
-        return [
-            'id' => 'ID',
-            'login' => 'Login',
-            'password' => 'Password',
-            'token' => 'Token',
-            'code' => 'Code',
-        ];
-    }
 
     public static function findIdentity($id)
     {

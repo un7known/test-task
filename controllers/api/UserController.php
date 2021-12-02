@@ -3,114 +3,60 @@
 namespace app\controllers\api;
 
 use Yii;
-use app\models\User;
-use yii\web\Controller;
+use app\resources\User;
+use app\helpers\ApiController;
 
 /**
  * Default controller for the `api` module
  */
-class UserController extends Controller
+class UserController extends ApiController
 {
+    public function actions()
+    {
+        return [];
+    }
+
     public function actionLogin()
     {
         $post = Yii::$app->getRequest()->post();
-
         if (isset($post['login']) && isset($post['password'])) {
             $user = User::findOne(['login' => $post['login']]);
-            if ($user) {
-                if (Yii::$app->getSecurity()->validatePassword($post['password'], $user->password)) {
-                    return [
-                        'status' => 1,
-                        'data' => [
-                            ['token' => $user->token],
-                        ],
-                    ];
-                } else {
-                    $errors[] = 'Ошибка авторизации';
-                }
+            if ($user && $user->load($post, '') && $user->login()) {
+                return $this->success(['token' => $user->token]);
             }
-        } else {
-            $errors[] = 'Пользователь не найден';
         }
-        return ['status' => -1, 'message' => $errors];
+        return $this->error(['Ошибка авторизации']);
     }
     public function actionPasswordRecovery()
     {
-        $post = Yii::$app->getRequest()->post();
-        if (count($post) === 1 && isset($post['login'])) {
-            $user = User::findOne(['login' => $post['login']]);
-            if ($user) {
-                $user->code = User::generateCode();
-                if ($user->save()) {
-                    return [
-                        'status' => 1,
-                        'data' => [
-                            ['code' => $user->code],
-                        ],
-                    ];
-                }
-                $errors = $user->getErrors();
-            } else {
-                $errors[] = 'Пользователь не найден';
-            }
-        } elseif (isset($post['login']) && isset($post['code']) && isset($post['password'])) {
-            $user = User::findOne(['login' => $post['login']]);
-            if ($user) {
-                if ($user->code === $post['code']) {
-                    $user->password = Yii::$app->getSecurity()->generatePasswordHash($post['password']);
-                    $user->token = Yii::$app->getSecurity()->generateRandomString();
-                    $user->code = User::generateCode();
-                    if ($user->save()) {
-                        return [
-                            'status' => 1,
-                            'data' => [
-                                ['token' => $user->token],
-                            ],
-                        ];
-                    }
-                } else {
-                    $errors[] = 'Неверный код';
-                }
-            } else {
-                $errors[] = 'Пользователь не найден';
-            }
-        } else {
-            $errors[] = 'Неправильный запрос';
-        }
-        return ['status' => -1, 'message' => $errors];
+        return $this->resterOrRecovery(false);
     }
     public function actionRegister()
     {
+        return $this->resterOrRecovery();
+    }
+
+    protected function resterOrRecovery($register = true){
         $post = Yii::$app->getRequest()->post();
-        if (count($post) === 1 && isset($post['login'])) {
-            $user = new User();
-            $user->login = $post['login'];
-            $user->code = User::generateCode();
-            if ($user->save()) {
-                return [
-                    'status' => 1,
-                    'data' => [
-                        ['code' => $user->code],
-                    ],
-                ];
+        if (isset($post['login']) && count($post) === 1) {
+            if ($register) {
+                $user = new User();
             } else {
+                $user = User::findOne(['login' => $post['login']]);
+            }
+            if ($user) {
+                if ($user->load($post, '') && $user->generateCode()) {
+                    return $this->success(['code' => $user->code]);
+                }
                 $errors = $user->getErrors();
+            } else {
+                $errors[] = 'Пользователь не найден';
             }
         } elseif (isset($post['login']) && isset($post['code']) && isset($post['password'])) {
             $user = User::findOne(['login' => $post['login']]);
             if ($user) {
-                if ($user->code === $post['code']) {
-                    $user->password = Yii::$app->getSecurity()->generatePasswordHash($post['password']);
-                    $user->token = Yii::$app->getSecurity()->generateRandomString();
-                    $user->code = User::generateCode();
-                    if ($user->save()) {
-                        return [
-                            'status' => 1,
-                            'data' => [
-                                ['token' => $user->token],
-                            ],
-                        ];
-                    }
+                if ($user->load($post, '') && $user->verifyCode()) {
+                    return $this->success(['token' => $user->token]);
                 } else {
                     $errors[] = 'Неверный код';
                 }
@@ -120,6 +66,7 @@ class UserController extends Controller
         } else {
             $errors[] = 'Неправильный запрос';
         }
-        return ['status' => -1, 'message' => $errors];
+
+        return $this->error($errors);
     }
 }
