@@ -24,17 +24,35 @@ class User extends \app\resources\User implements IdentityInterface
     {
     }
 
+    /**
+     * Поиск по токену
+     *
+     * @param  string $token
+     * @param  mixed $type
+     * @return static|null
+     */
     public static function findIdentityByAccessToken($token, $type = null)
     {
 
         return self::findOne(['token' => $token]);
     }
 
+    /**
+     * Поиск по username
+     *
+     * @param  string $username
+     * @return static|null
+     */
     public static function findByUsername($username)
     {
         return self::findOne(['login' => $username]);
     }
 
+    /**
+     * Возравщает ID
+     *
+     * @return int|string
+     */
     public function getId()
     {
         return $this->id;
