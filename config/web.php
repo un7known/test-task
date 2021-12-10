@@ -21,7 +21,7 @@ $config = [
                 $response = $event->sender;
                 if ($response->statusCode !== 200 && $response->statusCode !== 401) {
                     $response->data = [
-                        'status' => app\helpers\ApiController::STATUS_ERROR,
+                        'status' => app\controllers\api\ApiController::STATUS_ERROR,
                         'message' => $response->data['message'] ?? 'Ошибка',
                     ];
                     $response->statusCode = 200;

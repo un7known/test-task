@@ -2,11 +2,10 @@
 
 namespace app\controllers\api;
 
+use app\resources\user\GenerateCode;
+use app\resources\user\LoginUser;
+use app\resources\user\VerifyCode;
 use Yii;
-use app\resources\User;
-use yii\base\ErrorException;
-use app\helpers\ApiController;
-use yii\web\NotFoundHttpException;
 
 /**
  * Контроллер для регистрации, восстановления пароля и получения токена.
@@ -25,19 +24,7 @@ class UserController extends ApiController
      */
     public function actionLogin()
     {
-        $post = Yii::$app->getRequest()->post();
-
-        try {
-            $user = $this->findUser($post['login']);
-            if ($user->load($post, '') && $user->validate()) {
-                return $this->success(['token' => $user->token]);
-            }
-            $errors = $user->formatErrors();
-
-            return $this->error($errors);
-        } catch (ErrorException $e) {
-            return $this->error([$e->getMessage()]);
-        }
+        return $this->doActionByEntity(new LoginUser());
     }
 
     /**
@@ -69,48 +56,15 @@ class UserController extends ApiController
      */
     protected function registerOrRecovery($register = true)
     {
-        $post = Yii::$app->getRequest()->post();
-
-        try {
-            if (count($post) === 1) {
-                $user = $register ? new User() : $user = $this->findUser($post['login']);
-                $user->scenario = User::SCENARIO_GENERATE_CODE;
-                if ($user->load($post, '') && $user->validate() && $user->generateCode()) {
-                    return $this->success(['code' => $user->code]);
-                }
-                $errors = $user->formatErrors();
-            } else {
-                $user = $this->findUser($post['login']);
-                $user->scenario = User::SCENARIO_VERIFY_CODE;
-                if ($user->load($post, '') && $user->validate()) {
-                    $user->genPassAndToken();
-                    $user->save(false);
-
-                    return $this->success(['token' => $user->token]);
-                }
-                $errors = $user->formatErrors();
+        if (count(Yii::$app->getRequest()->post()) === 1) {
+            if ($register) {
+                return $this->doActionByEntity(new GenerateCode(['scenario' => GenerateCode::SCENARIO_REGISTER]));
             }
 
-            return $this->error($errors);
-        } catch (ErrorException $e) {
-            return $this->error([$e->getMessage()]);
+            return $this->doActionByEntity(new GenerateCode(['scenario' => GenerateCode::SCENARIO_RECOVERY]));
+        }else {
+            return $this->doActionByEntity(new VerifyCode());
+
         }
-    }
-
-
-    /**
-     * Поиск пользователя
-     *
-     * @param  string $login
-     * @return app\resources\User
-     * @throws NotFoundHttpException
-     */
-    protected function findUser($login)
-    {
-        if (($user = User::findOne(['login' => $login])) !== null) {
-            return $user;
-        }
-
-        throw new NotFoundHttpException('Пользователь не найден');
     }
 }

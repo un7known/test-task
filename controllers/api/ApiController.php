@@ -1,8 +1,11 @@
 <?php
 
-namespace app\helpers;
+namespace app\controllers\api;
 
+use Yii;
+use yii\base\Exception;
 use yii\rest\ActiveController;
+use app\resources\ValidationModel;
 
 /**
  * Контролер от которого наследуем други контролеры в API
@@ -53,5 +56,26 @@ class ApiController extends ActiveController
                 'status' => self::STATUS_ERROR,
                 'message' => $message,
             ];
+    }
+    /**
+     * Выполнение действия.
+     *
+     * @param  ValidationModel $model
+     * @return array
+     */
+    public function doActionByEntity($model)
+    {
+        try {
+            $model->load(Yii::$app->getRequest()->post(), '');
+            if (($data = $model->doAction()) !== false) {
+                return $this->success($data);
+            }
+
+            return $this->error($model->formatErrors());
+        }
+        catch (Exception $e) {
+            return $this->error([$e->getMessage()]);
+        }
+
     }
 }

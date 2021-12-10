@@ -3,6 +3,7 @@
 namespace app\resources;
 
 use Yii;
+use yii\web\NotFoundHttpException;
 
 /**
  * This is the model class for table "users".
@@ -15,26 +16,6 @@ use Yii;
  */
 class User extends \yii\db\ActiveRecord
 {
-    /**
-     * Сценарий при генерации кода.
-     *
-     * @var string
-     */
-    public const SCENARIO_GENERATE_CODE = 'generate_code';
-    /**
-     * Сценарий при проверке кода.
-     *
-     * @var string
-     */
-    public const SCENARIO_VERIFY_CODE = 'verify_code';
-
-    /**
-     * Пароль из запроса для проверки с hash.
-     *
-     * @var string
-     */
-    public $password = '';
-
     /**
      * {@inheritdoc}
      */
@@ -49,14 +30,7 @@ class User extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['login'], 'required'],
-            ['password', 'required', 'except' => self::SCENARIO_GENERATE_CODE],
-            ['code', 'required', 'on' => self::SCENARIO_VERIFY_CODE],
-            ['code', 'validateCode', 'on' => self::SCENARIO_VERIFY_CODE],
-            [['login'], 'string', 'length' => 10],
-            [['hash', 'password', 'token', 'code'], 'string', 'max' => 255],
             [['login', 'token'], 'unique'],
-            ['password', 'validatePassword', 'except' => self::SCENARIO_VERIFY_CODE],
         ];
     }
 
@@ -68,7 +42,6 @@ class User extends \yii\db\ActiveRecord
         return [
             'id' => 'ID',
             'login' => 'Login',
-            'password' => 'Password',
             'token' => 'Token',
             'code' => 'Code',
         ];
@@ -77,40 +50,24 @@ class User extends \yii\db\ActiveRecord
     /**
      * Проверка пароля.
      *
-     * @param string $attribute
-     * @param array  $params
+     * @param string $password
+     *
+     * @return bool
      */
-    public function validatePassword($attribute, $params)
+    public function validatePassword($password)
     {
-        if (!\Yii::$app->getSecurity()->validatePassword($this->password, $this->hash)) {
-            $this->addError($attribute, 'Неправильный пароль');
-        }
+        return Yii::$app->security->validatePassword($password, $this->hash);
     }
 
-
-    /**
-     * Форматирование ошибок в массив
-     *
-     * @return array|bool
-     */
-    public function formatErrors()
+    public function validateCode($code)
     {
-        if (isset($this->errors)) {
-            $result = [];
-            foreach ($this->errors as $attribute => $error) {
-                $result[] = implode(' ', $error);
-            }
-
-            return $result;
-        }
-
-        return false;
+        return $this->code === $code;
     }
 
     /**
-     *  Генерация и сохранения кода для авторизации.
+     *  Генерация кода для авторизации.
      *
-     * @param mixed $length
+     * @param int $length
      */
     public function generateCode($length = 6)
     {
@@ -119,11 +76,6 @@ class User extends \yii\db\ActiveRecord
             $result .= random_int(0, 9);
         }
         $this->code = $result;
-        if ($this->save()) {
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -138,29 +90,30 @@ class User extends \yii\db\ActiveRecord
     }
 
     /**
-     * Генерируем пароля, токен, и сбрасываем код.
+     * Генерируем пароль.
+     *
+     * @param string $password
      */
-    public function genPassAndToken()
+    public function generatePassword($password)
     {
-        $this->hash = Yii::$app->getSecurity()->generatePasswordHash($this->password);
-        $this->generateToken();
-        $this->code = null;
+        $this->hash = Yii::$app->getSecurity()->generatePasswordHash($password);
     }
 
     /**
-     * Проверка на совпадение пароля.
+     * Поиск пользователя.
      *
-     * @param string $attribute
-     * @param array  $params
+     * @param string $login
+     *
+     * @throws NotFoundHttpException
+     *
+     * @return app\resources\User
      */
-    public function validateCode($attribute, $params)
+    public static function findUser($login)
     {
-        $_attributes = $this->oldAttributes;
-        $atributes = $this->attributes;
-        if ($atributes['code'] !== $_attributes['code']) {
-            $this->addError('code', 'Неправильный код');
+        if (($user = User::findOne(['login' => $login])) !== null) {
+            return $user;
         }
+
+        throw new NotFoundHttpException('Пользователь не найден');
     }
-
-
 }
