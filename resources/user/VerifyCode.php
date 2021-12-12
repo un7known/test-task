@@ -70,6 +70,9 @@ class VerifyCode extends ValidationModel
             if ($this->_user->save()) {
                 return ['token' => $this->_user->token];
             }
+            else {
+                $this->addErrors($this->_user->errors);
+            }
         }
 
         return false;
